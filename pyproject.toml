@@ -1,0 +1,27 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "shapewarping"
+version = "1.0.0"
+description = "Source code for One-shot Imitation Learning via Interaction Warping"
+authors = [
+  { name = "Ondrej Biza", email = "ondrej.biza@gmail.com" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Linux",
+]
+requires-python = ">=3.7"
+dependencies = [
+  "requests>2",
+]
+
+[project.urls]
+"Homepage" = "https://shapewarping.github.io"
+"Code" = "https://github.com/ondrejbiza/shapewarping"
+"Paper" = "https://arxiv.org/abs/2306.12392"
