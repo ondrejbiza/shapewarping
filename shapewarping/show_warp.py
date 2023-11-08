@@ -2,22 +2,25 @@ import argparse
 import os
 import pickle
 
-import numpy as np
-from numpy.typing import NDArray
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button
-from sklearn.decomposition import PCA
+import numpy as np
 import trimesh
+from matplotlib.widgets import Button, Slider
+from numpy.typing import NDArray
+from sklearn.decomposition import PCA
 
 from shapewarping.lib import viz_utils
 
 
-def warp_object(canonical_obj: NDArray, pca: PCA, latents: NDArray, scale_factor: float):
-    return canonical_obj + pca.inverse_transform(latents).reshape((-1, 3)) / scale_factor
+def warp_object(
+    canonical_obj: NDArray, pca: PCA, latents: NDArray, scale_factor: float
+):
+    return (
+        canonical_obj + pca.inverse_transform(latents).reshape((-1, 3)) / scale_factor
+    )
 
 
 def update_axis(ax, new_obj: NDArray, vmin: float, vmax: float):
-
     ax.clear()
     ax.scatter(new_obj[:, 0], new_obj[:, 1], new_obj[:, 2], color="red")
     ax.set_xlim(vmin, vmax)
@@ -26,7 +29,6 @@ def update_axis(ax, new_obj: NDArray, vmin: float, vmax: float):
 
 
 def main(args):
-
     canonical_mesh_points = None
     canonical_mesh_faces = None
     with open(args.load_path, "rb") as f:
@@ -41,8 +43,10 @@ def main(args):
             print("canonical_mesh_points shape", canonical_mesh_points.shape)
             print("canonical_mesh_faces shape", canonical_mesh_faces.shape)
 
-    new_obj = warp_object(canonical_obj, pca, np.array([[0.] * pca.n_components]), args.scale)
-    smin, smax = -2., 2.
+    new_obj = warp_object(
+        canonical_obj, pca, np.array([[0.0] * pca.n_components]), args.scale
+    )
+    smin, smax = -2.0, 2.0
     vmin, vmax = -0.3, 0.3
 
     fig = plt.figure()
@@ -51,7 +55,7 @@ def main(args):
     update_axis(ax, new_obj, vmin, vmax)
 
     slider_axes = []
-    z = 0.
+    z = 0.0
     for _ in range(pca.n_components + 2):
         slider_axes.append(fig.add_axes([0.25, z, 0.65, 0.03]))
         z += 0.05
@@ -75,7 +79,7 @@ def main(args):
         latents = np.array([[s.val for s in sliders]])
         new_obj = warp_object(canonical_obj, pca, latents, args.scale)
         mesh_reconstruction = trimesh.base.Trimesh(
-            vertices=new_obj[:len(canonical_mesh_points)], faces=canonical_mesh_faces
+            vertices=new_obj[: len(canonical_mesh_points)], faces=canonical_mesh_faces
         )
         mesh_reconstruction.show(smooth=False)
 
@@ -83,7 +87,7 @@ def main(args):
         latents = np.array([[s.val for s in sliders]])
         new_obj = warp_object(canonical_obj, pca, latents, args.scale)
         mesh_reconstruction = trimesh.base.Trimesh(
-            vertices=new_obj[:len(canonical_mesh_points)], faces=canonical_mesh_faces
+            vertices=new_obj[: len(canonical_mesh_points)], faces=canonical_mesh_faces
         )
 
         dir_path = "data/warping_figure_a_1"
@@ -94,7 +98,7 @@ def main(args):
             if not os.path.isfile(file_path):
                 break
         viz_utils.save_o3d_pcd(new_obj, file_path)
-        mesh_reconstruction.export(file_path[:-4] + ".stl")        
+        mesh_reconstruction.export(file_path[:-4] + ".stl")
 
     for s in sliders:
         s.on_changed(sliders_on_changed)
@@ -108,5 +112,5 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("load_path")
-    parser.add_argument("--scale", type=float, default=1.)
+    parser.add_argument("--scale", type=float, default=1.0)
     main(parser.parse_args())

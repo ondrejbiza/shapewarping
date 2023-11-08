@@ -1,5 +1,6 @@
 from typing import Optional, List, Tuple, Union
 from dataclasses import dataclass
+import pickle
 
 import trimesh
 import numpy as np
