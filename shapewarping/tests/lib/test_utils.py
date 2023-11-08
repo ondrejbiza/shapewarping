@@ -1,8 +1,9 @@
 import unittest
-
+import os
 import numpy as np
 import trimesh
 from scipy.spatial.transform import Rotation
+import pybullet as pb
 
 from shapewarping.lib import utils
 
@@ -136,6 +137,174 @@ class TestTrimeshTransform(unittest.TestCase):
             np.array_equal(self.mesh.vertices, original_vertices),
             "Mesh should not change",
         )
+
+
+class TestFarthestPointSample(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(42)
+
+    def test_same_number_of_points(self):
+        point = np.array([[0, 0, 0],
+                          [1, 0, 0],
+                          [0, 1, 0],
+                          [0, 0, 1]])
+        npoint = 4
+        expected_point = np.array([[0, 1, 0],
+                                   [1, 0, 0],
+                                   [0, 0, 1],
+                                   [0, 0, 0]])
+        expected_indices = np.array([2, 1, 3, 0], dtype=np.int32)
+        result_point, result_indices = utils.farthest_point_sample(point, npoint)
+        np.testing.assert_array_almost_equal(result_point, expected_point, decimal=5)
+        np.testing.assert_array_equal(result_indices, expected_indices)
+
+    def test_half_number_of_points(self):
+        point = np.array([[0, 0, 0],
+                          [1, 0, 0],
+                          [0, 1, 0],
+                          [0, 0, 1]])
+        npoint = 2
+        expected_point = np.array([[0, 1, 0],
+                                   [1, 0, 0]])
+        expected_indices = np.array([2, 1], dtype=np.int32)
+        result_point, result_indices = utils.farthest_point_sample(point, npoint)
+        np.testing.assert_array_almost_equal(result_point, expected_point, decimal=5)
+        np.testing.assert_array_equal(result_indices, expected_indices)
+
+    def test_more_points_than_input(self):
+        point = np.array([[0, 0, 0],
+                          [1, 0, 0],
+                          [0, 1, 0],
+                          [0, 0, 1]])
+        npoint = 6
+        with self.assertRaises(ValueError):
+            utils.farthest_point_sample(point, npoint)
+
+    def test_single_point(self):
+        point = np.array([[0, 0, 0],
+                          [1, 0, 0],
+                          [0, 1, 0],
+                          [0, 0, 1]])
+        npoint = 1
+        expected_indices = np.array([2], dtype=np.int32)
+        _, result_indices = utils.farthest_point_sample(point, npoint)
+        np.testing.assert_array_equal(result_indices, expected_indices)
+
+
+class TestRotationDistance(unittest.TestCase):
+
+    def test_identity(self):
+        A = np.eye(3)
+        B = np.eye(3)
+        expected = 0.0
+        self.assertAlmostEqual(utils.rotation_distance(A, B), expected, places=5)
+
+    def test_90_degree_rotation(self):
+        A = np.eye(3)
+        B = np.array([[0, -1, 0],
+                      [1,  0, 0],
+                      [0,  0, 1]])
+        expected = np.pi / 2
+        self.assertAlmostEqual(utils.rotation_distance(A, B), expected, places=5)
+
+    def test_180_degree_rotation(self):
+        A = np.eye(3)
+        B = np.array([[-1,  0,  0],
+                      [ 0, -1,  0],
+                      [ 0,  0,  1]])
+        expected = np.pi
+        self.assertAlmostEqual(utils.rotation_distance(A, B), expected, places=5)
+
+    def test_numerical_stability(self):
+        A = np.eye(3)
+        B = np.array([[ 1,  0,  0],
+                      [ 0, -1,  0],
+                      [ 0,  0, -1]])
+        expected = np.pi
+        self.assertAlmostEqual(utils.rotation_distance(A, B), expected, places=5)
+
+
+class TestPoseDistance(unittest.TestCase):
+
+    def test_same_pose(self):
+        trans1 = np.eye(4)
+        trans2 = np.eye(4)
+        expected = 0.0
+        result = utils.pose_distance(trans1, trans2)
+        self.assertAlmostEqual(result, expected, places=5)
+
+    def test_translation_only(self):
+        trans1 = np.eye(4)
+        trans2 = np.eye(4)
+        trans2[:3, 3] = np.array([2, 0, 0])
+        expected = 2.0
+        result = utils.pose_distance(trans1, trans2)
+        self.assertAlmostEqual(result, expected, places=5)
+
+    def test_rotation_only(self):
+        trans1 = np.eye(4)
+        trans2 = np.eye(4)
+        trans2[:3, :3] = np.array([[0, -1, 0],
+                                   [1,  0, 0],
+                                   [0,  0, 1]])
+        expected = np.pi / 2
+        result = utils.pose_distance(trans1, trans2)
+        self.assertAlmostEqual(result, expected, places=5)
+
+    def test_combined_translation_and_rotation(self):
+        trans1 = np.eye(4)
+        trans2 = np.eye(4)
+        trans2[:3, 3] = np.array([2, 0, 0])
+        trans2[:3, :3] = np.array([[0, -1, 0],
+                                   [1,  0, 0],
+                                   [0,  0, 1]])
+        expected = 2.0 + np.pi / 2
+        result = utils.pose_distance(trans1, trans2)
+        self.assertAlmostEqual(result, expected, places=5)
+
+
+class TestWiggle(unittest.TestCase):
+
+    def setUp(self):
+        self.sim_id = pb.connect(pb.DIRECT)
+        pb.resetSimulation()
+        test_data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+        self.source_obj = pb.loadURDF(os.path.join(test_data_path, "box_0.urdf"))
+        self.target_obj = pb.loadURDF(os.path.join(test_data_path, "box_1.urdf"))
+
+    def tearDown(self):
+        pb.disconnect(self.sim_id)
+
+    def test_no_collision_initially(self):
+        utils.pb_set_pose(self.source_obj, np.array([1, 1, 1]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+        utils.pb_set_pose(self.target_obj, np.array([3, 3, 3]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+
+        pos, quat = utils.pb_get_pose(self.source_obj, sim_id=self.sim_id)
+        result_pos, result_quat = utils.wiggle(self.source_obj, self.target_obj, sim_id=self.sim_id)
+
+        self.assertTrue(np.allclose(result_pos, pos))
+        self.assertTrue(np.allclose(result_quat, quat))
+
+    def test_collision(self):
+        utils.pb_set_pose(self.source_obj, np.array([1, 1, 1]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+        utils.pb_set_pose(self.target_obj, np.array([1.1, 1.1, 1.1]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+
+        result_pos, result_quat = utils.wiggle(self.source_obj, self.target_obj, sim_id=self.sim_id)
+
+        pb.performCollisionDetection()
+        in_collision = utils.pb_body_collision(self.source_obj, self.target_obj, sim_id=self.sim_id)
+        self.assertFalse(in_collision)
+
+    def test_no_solution_found(self):
+        utils.pb_set_pose(self.source_obj, np.array([1, 1, 1]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+        utils.pb_set_pose(self.target_obj, np.array([1.1, 1.1, 1.1]), np.array([0, 0, 0, 1]), sim_id=self.sim_id)
+
+        pos, quat = utils.pb_get_pose(self.source_obj, sim_id=self.sim_id)
+        result_pos, result_quat = utils.wiggle(self.source_obj, self.target_obj, max_tries=1, sd=0.001, sim_id=self.sim_id)
+
+        self.assertTrue(np.allclose(result_pos, pos))
+        self.assertTrue(np.allclose(result_quat, quat))
 
 
 if __name__ == "__main__":

@@ -32,7 +32,17 @@ class NDFInterface:
         self.canon_target = utils.CanonObj.from_pickle(self.canon_target_path)
 
     def set_demo_info(self, pc_master_dict, demo_idx: int=0, calculate_cost: bool=False, show: bool=True):
-        """Process a demonstration."""
+        """Process a demonstration.
+        
+        Args:
+            pc_master_dict: Dictionary with many demonstrations from R-NDF.
+            demo_idx: Index of the demonstration to process.
+            calculate_cost: Calculate how well we can fit to the demonstration.
+            show: Visualize the demonstration.
+        
+        Returns:
+            Optionally return a cost of our fit to the demonstration.
+        """
 
         # Get a single demonstration.
         source_pcd = pc_master_dict["child"]["demo_start_pcds"][demo_idx]

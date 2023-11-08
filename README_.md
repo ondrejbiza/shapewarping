@@ -1,8 +1,7 @@
 # One-shot Imitation Learning via Interation Warping
 
 TODO:
-* Write tests for functions in learn_warp.
-* Write tests remaining functions in utils.
+* Write tests for the remaining functions in utils.
 * Refactor show warp.
 * Add comments and types to demo.
 * Add comments and types to ndf_interface.
@@ -32,8 +31,17 @@ Original code (includes real-world UR5 code): https://github.com/ondrejbiza/fews
 
 ## Acknowledgements
 
-* Simulation and benchmark: Relational Neural Descriptor Fields TODO.
-* Parts of shape warping code: Shape-based Skill Transfer TODO.
+* Simulation and benchmark: [Relational Neural Descriptor Fields](https://github.com/anthonysimeonov/relational_ndf).
+* Parts of shape warping code: [Shape-based Skill Transfer](https://lis.csail.mit.edu/wp-content/uploads/2021/05/thompson_icra_2021_compressed.pdf).
+
+## Troubleshooting
+
+1. `pip install cycpd` doesn't work on Mac. But, the following works:
+```
+git clone https://github.com/gattia/cycpd
+cd cycpd
+pip install -e .
+```
 
 ## Citation
 
