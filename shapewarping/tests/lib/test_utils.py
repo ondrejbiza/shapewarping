@@ -84,3 +84,7 @@ class TestBestFitTransform(unittest.TestCase):
         np.testing.assert_array_almost_equal(result_T, expected_T, decimal=5)
         np.testing.assert_array_almost_equal(result_R, expected_R, decimal=5)
         np.testing.assert_array_almost_equal(result_t, expected_t, decimal=5)
+
+
+if __name__ == "__main__":
+    unittest.main()
