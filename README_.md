@@ -28,6 +28,7 @@ Original code (includes real-world UR5 code): https://github.com/ondrejbiza/fews
 
 * Simulation and benchmark: [Relational Neural Descriptor Fields](https://github.com/anthonysimeonov/relational_ndf).
 * Parts of shape warping code: [Shape-based Skill Transfer](https://lis.csail.mit.edu/wp-content/uploads/2021/05/thompson_icra_2021_compressed.pdf).
+* We re-distrubute an older version of [v-hacd] in `/v-hacd`.
 
 ## Troubleshooting
 
@@ -41,5 +42,19 @@ pip install -e .
 ## Citation
 
 ```
-TODO
+@inproceedings{biza23oneshot,
+  author       = {Ondrej Biza and
+                  Skye Thompson and
+                  Kishore Reddy Pagidi and
+                  Abhinav Kumar and
+                  Elise van der Pol and
+                  Robin Walters and
+                  Thomas Kipf and
+                  Jan{-}Willem van de Meent and
+                  Lawson L. S. Wong and
+                  Robert Platt},
+  title        = {One-shot Imitation Learning via Interaction Warping},
+  booktitle    = {CoRL},
+  year         = {2023}
+}
 ```

@@ -280,7 +280,7 @@ def trimesh_transform(
 
 
 def trimesh_create_verts_surface(
-    mesh: trimesh.Trimesh, num_surface_samples: Optional[int] = 1500
+    mesh: trimesh.Trimesh, num_surface_samples: int = 1500
 ) -> npt.NDArray[np.float32]:
     """Samples points on the surface of a mesh.
 

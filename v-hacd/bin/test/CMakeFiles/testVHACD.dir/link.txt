@@ -1,0 +1,1 @@
+/usr/bin/c++  -fopenmp -g -Wall -rdynamic CMakeFiles/testVHACD.dir/src/main.cpp.o CMakeFiles/testVHACD.dir/src/oclHelper.cpp.o -o testVHACD  -Wl,-rpath,/usr/local/cuda/lib64 ../VHACD_Lib/libvhacd.a /usr/local/cuda/lib64/libOpenCL.so -lrt 

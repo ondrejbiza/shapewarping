@@ -210,11 +210,15 @@ def main(args: argparse.Namespace):
     faces = []
 
     for mesh in meshes:
+        print("surface")
         sp = utils.trimesh_create_verts_surface(
             mesh, num_surface_samples=num_surface_samples
         )
+        print("x")
         ssp = utils.trimesh_create_verts_surface(mesh, num_surface_samples=2000)
+        print("y")
         mp, f = utils.trimesh_get_vertices_and_faces(mesh)
+        print("scale mesh")
         ssp, sp, mp = utils.scale_points_circle([ssp, sp, mp], base_scale=0.1)
         h = np.concatenate([mp, sp])  # Order important!
 
@@ -224,6 +228,7 @@ def main(args: argparse.Namespace):
         faces.append(f)
         hybrid_points.append(h)
 
+    print("####### Pick canonical shape")
     # TODO: Blacklist objects that have too many vertices.
     if args.pick_canon_warp:
         canonical_idx = pick_canonical_warp(small_surface_points)
@@ -235,9 +240,11 @@ def main(args: argparse.Namespace):
     tmp_obj_points = cp.copy(small_surface_points)
     tmp_obj_points[canonical_idx] = hybrid_points[canonical_idx]
 
+    print("######## Create warps")
     warps, _ = warp_gen(
         canonical_idx, tmp_obj_points, alpha=args.alpha, visualize=args.show
     )
+    print("######## Fit PCA")
     _, pca = pca_fit_transform(warps, n_dimensions=args.n_dimensions)
 
     with open(args.save_path, "wb") as f:
