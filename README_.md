@@ -28,7 +28,7 @@ Original code (includes real-world UR5 code): https://github.com/ondrejbiza/fews
 
 * Simulation and benchmark: [Relational Neural Descriptor Fields](https://github.com/anthonysimeonov/relational_ndf).
 * Parts of shape warping code: [Shape-based Skill Transfer](https://lis.csail.mit.edu/wp-content/uploads/2021/05/thompson_icra_2021_compressed.pdf).
-* We re-distrubute an older version of [v-hacd] in `/v-hacd`.
+* We re-distrubute an older version of [v-hacd](https://github.com/kmammou/v-hacd) in `/v-hacd`.
 
 ## Troubleshooting
 
