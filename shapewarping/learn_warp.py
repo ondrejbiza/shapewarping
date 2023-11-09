@@ -260,13 +260,13 @@ if __name__ == "__main__":
     parser.add_argument("save_path", help="Save path for pickled model.")
 
     parser.add_argument(
-        "--rot-x", type=float, default=False, help="x-axis rotation in radians."
+        "--rot-x", type=float, default=None, help="x-axis rotation in radians."
     )
     parser.add_argument(
-        "--rot-y", type=float, default=False, help="y-axis rotation in radians."
+        "--rot-y", type=float, default=None, help="y-axis rotation in radians."
     )
     parser.add_argument(
-        "--rot-z", type=float, default=False, help="z-axis rotation in radians."
+        "--rot-z", type=float, default=None, help="z-axis rotation in radians."
     )
 
     parser.add_argument(

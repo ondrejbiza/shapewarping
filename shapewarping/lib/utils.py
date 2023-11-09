@@ -4,11 +4,11 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
+import pybullet as pb
 import torch
 import trimesh
 from scipy.spatial.transform import Rotation
 from sklearn.decomposition import PCA
-import pybullet as pb
 
 NPF32 = npt.NDArray[np.float32]
 NPF64 = npt.NDArray[np.float64]
@@ -25,6 +25,7 @@ class ObjParam:
     scale: NPF32 = np.array([1.0, 1.0, 1.0], dtype=np.float32)
 
     def get_transform(self) -> NPF64:
+        """Returns object pose as a 4x4 homogenous transform."""
         return pos_quat_to_transform(self.position, self.quat)
 
 
@@ -42,6 +43,13 @@ class CanonObj:
             self.n_components = self.pca.n_components
 
     def to_pcd(self, obj_param: ObjParam) -> NPF32:
+        """Creates a point cloud given warping parameters.
+
+        The point cloud is located at the origin of the coordinate system.
+
+        Args:
+            obj_param: Warping parameters for a particular object instace.
+        """
         if self.pca is not None and obj_param.latent is not None:
             pcd = self.canonical_pcd + self.pca.inverse_transform(
                 obj_param.latent
@@ -55,17 +63,38 @@ class CanonObj:
         return pcd * obj_param.scale[None]
 
     def to_transformed_pcd(self, obj_param: ObjParam) -> NPF32:
+        """Creates a point cloud given warping parameters.
+
+        The point cloud is transformed to a location specified by obj_param.
+
+        Args:
+            obj_param: Warping parameters for a particular object instace.
+        """
         pcd = self.to_pcd(obj_param)
         trans = pos_quat_to_transform(obj_param.position, obj_param.quat)
         return transform_pcd(pcd, trans)
 
     def to_mesh(self, obj_param: ObjParam) -> trimesh.Trimesh:
+        """Creates a mesh given warping parameters.
+
+        The mesh is located at the origin of the coordinate system.
+
+        Args:
+            obj_param: Warping parameters for a particular object instace.
+        """
         pcd = self.to_pcd(obj_param)
         # The vertices are assumed to be at the start of the canonical_pcd.
         vertices = pcd[: len(self.mesh_vertices)]
         return trimesh.Trimesh(vertices, self.mesh_faces)
 
     def to_transformed_mesh(self, obj_param: ObjParam) -> trimesh.Trimesh:
+        """Creates a mesh given warping parameters.
+
+        The mesh is transformed to a location specified by obj_param.
+
+        Args:
+            obj_param: Warping parameters for a particular object instace.
+        """
         pcd = self.to_transformed_pcd(obj_param)
         # The vertices are assumed to be at the start of the canonical_pcd.
         vertices = pcd[: len(self.mesh_vertices)]
@@ -73,6 +102,7 @@ class CanonObj:
 
     @staticmethod
     def from_pickle(load_path: str) -> "CanonObj":
+        """Loads a canonical object from a pickle created by 'learn_warp.py'."""
         with open(load_path, "rb") as f:
             data = pickle.load(f)
         pcd = data["canonical_obj"]
@@ -108,10 +138,12 @@ class PlaceDemoVirtualPoints:
 
 
 def quat_to_rotm(quat: NPF64) -> NPF64:
+    """Converts quaternion to rotation matrix."""
     return Rotation.from_quat(quat).as_matrix()
 
 
 def rotm_to_quat(rotm: NPF64) -> NPF64:
+    """Converts rotation matrix to quaternion."""
     return Rotation.from_matrix(rotm).as_quat()
 
 
@@ -119,6 +151,7 @@ def pos_quat_to_transform(
     pos: Union[Tuple[float, float, float], NPF64],
     quat: Union[Tuple[float, float, float, float], NPF64],
 ) -> NPF64:
+    """Position and quaternion to a 4x4 homogenous transform."""
     trans = np.eye(4).astype(np.float64)
     trans[:3, 3] = pos
     trans[:3, :3] = quat_to_rotm(np.array(quat))
@@ -126,6 +159,7 @@ def pos_quat_to_transform(
 
 
 def transform_to_pos_quat(trans: NPF64) -> Tuple[NPF64, NPF64]:
+    """4x4 homogenous transform to position and quaternion."""
     pos = trans[:3, 3]
     quat = rotm_to_quat(trans[:3, :3])
     # Just making sure.
@@ -133,6 +167,7 @@ def transform_to_pos_quat(trans: NPF64) -> Tuple[NPF64, NPF64]:
 
 
 def transform_to_pos_rot(trans: NPF64) -> Tuple[NPF64, NPF64]:
+    """4x4 homogenous transform to position and rotation matrix."""
     pos = trans[:3, 3]
     rot = trans[:3, :3]
     # Just making sure.
@@ -140,6 +175,16 @@ def transform_to_pos_rot(trans: NPF64) -> Tuple[NPF64, NPF64]:
 
 
 def transform_pcd(pcd: NPF32, trans: NPF64, is_position: bool = True) -> NPF32:
+    """Transforms a PCD using a 4x4 homogenous transform.
+
+    Args:
+        pcd: Point cloud.
+        trans: 4x4 homogenous transform.
+        is_position: If False, the point in the point cloud will be treated as vectors.
+
+    Returns:
+        Transformed point cloud.
+    """
     n = pcd.shape[0]
     cloud = pcd.T
     augment = np.ones((1, n)) if is_position else np.zeros((1, n))
@@ -212,8 +257,6 @@ def trimesh_transform(
         scale: Scale the mesh by a scalar in all axes.
         rotation: 3D rotation matrix.
     """
-
-    # Automatically center. Also possibly rotate and scale.
     translation_matrix = np.eye(4)
     scaling_matrix = np.eye(4)
     rotation_matrix = np.eye(4)
@@ -379,23 +422,16 @@ def farthest_point_sample(
 
 
 def rotation_distance(A, B):
-    # Compute the relative rotation matrix
+    """Computes a distance between two rotation matrices."""
     R = np.dot(A, B.T)
-
-    # Calculate the trace of the matrix
     trace = np.trace(R)
-
-    # Clamp the trace value to the valid range [-1, 3] to avoid numerical errors
     trace = np.clip(trace, -1, 3)
-
-    # Calculate the angle of rotation in radians
     angle = np.arccos((trace - 1) / 2)
-
-    # Return the distance as a float
     return float(angle)
 
 
 def pose_distance(trans1, trans2):
+    """Computes a distance between two poses."""
     pos1, rot1 = transform_to_pos_rot(trans1)
     pos2, rot2 = transform_to_pos_rot(trans2)
 
@@ -450,11 +486,16 @@ def convex_decomposition(
     return convex_meshes
 
 
-def wiggle(source_obj: int, target_obj: int, max_tries: int=10000,
-           sim_id: Optional[int]=None, sd: float=0.1) -> Tuple[NPF64, NPF64]:
+def wiggle(
+    source_obj: int,
+    target_obj: int,
+    max_tries: int = 10000,
+    sim_id: Optional[int] = None,
+    sd: float = 0.1,
+) -> Tuple[NPF64, NPF64]:
     """Wiggle the source object out of a collision with the target object.
-    
-    Important: this function will change the state of the world and we assume
+
+    Important: this function will change the state of the Pybullet sim and we assume
     the world was saved before and will be restored after.
     """
     pos, quat = pb_get_pose(source_obj, sim_id=sim_id)
@@ -469,7 +510,6 @@ def wiggle(source_obj: int, target_obj: int, max_tries: int=10000,
     costs = []
 
     for i in range(max_tries):
-
         new_pos = pos + np.random.normal(0, sd, 3)
         pb_set_pose(source_obj, new_pos, quat, sim_id=sim_id)
 
@@ -492,14 +532,16 @@ def wiggle(source_obj: int, target_obj: int, max_tries: int=10000,
         return solution, quat
 
 
-def pb_set_pose(body: int, pos: NPF64, quat: NPF64, sim_id: Optional[int]=None):
+def pb_set_pose(body: int, pos: NPF64, quat: NPF64, sim_id: Optional[int] = None):
+    """Sets a pose of a body in Pybullet."""
     if sim_id is not None:
         pb.resetBasePositionAndOrientation(body, pos, quat, physicsClientId=sim_id)
     else:
         pb.resetBasePositionAndOrientation(body, pos, quat)
 
 
-def pb_get_pose(body, sim_id: Optional[int]=None) -> Tuple[NPF64, NPF64]:
+def pb_get_pose(body, sim_id: Optional[int] = None) -> Tuple[NPF64, NPF64]:
+    """Returns a pose of a body in Pybullet."""
     if sim_id is not None:
         pos, quat = pb.getBasePositionAndOrientation(body, physicsClientId=sim_id)
     else:
@@ -509,15 +551,21 @@ def pb_get_pose(body, sim_id: Optional[int]=None) -> Tuple[NPF64, NPF64]:
     return pos, quat
 
 
-def pb_body_collision(body1: int, body2: int, sim_id: Optional[int]=None, margin: float=0.) -> bool:
+def pb_body_collision(
+    body1: int, body2: int, sim_id: Optional[int] = None, margin: float = 0.0
+) -> bool:
+    """Calculates nearby points between two bodies in Pybullet."""
     if sim_id is not None:
-        results = pb.getClosestPoints(bodyA=body1, bodyB=body2, distance=margin, physicsClientId=sim_id)
+        results = pb.getClosestPoints(
+            bodyA=body1, bodyB=body2, distance=margin, physicsClientId=sim_id
+        )
     else:
         results = pb.getClosestPoints(bodyA=body1, bodyB=body2, distance=margin)
     return len(results) != 0
 
 
 def pb_set_joint_positions(body, joints: List[int], positions: List[float]):
+    """Sets join positions in Pybullet."""
     assert len(joints) == len(positions)
     for joint, position in zip(joints, positions):
         pb.resetJointState(body, joint, targetValue=position, targetVelocity=0)

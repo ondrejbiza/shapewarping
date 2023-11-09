@@ -3,6 +3,7 @@ from typing import Dict
 
 import numpy as np
 import numpy.typing as npt
+import open3d as o3d
 import plotly.graph_objects as go
 
 
@@ -10,7 +11,6 @@ def show_pcd_plotly(
     pcd: npt.NDArray, center: bool = False, axis_visible: bool = True
 ) -> None:
     """Shows a point cloud using the plotly library."""
-
     if center:
         pcd = pcd - np.mean(pcd, axis=0, keepdims=True)
     lmin = np.min(pcd)
@@ -88,3 +88,15 @@ def show_pcds_plotly(
     fig = go.Figure(data=data)
     fig.update_layout(scene=layout, showlegend=True)
     fig.show()
+
+
+def save_o3d_pcd(pcd: npt.NDArray[np.float32], save_path: str):
+    """Saves a point cloud using Open3D.
+
+    Args:
+        pcd: Point cloud.
+        save_path: Save path with an extension like .pcd.
+    """
+    pcd_o3d = o3d.geometry.PointCloud()
+    pcd_o3d.points = o3d.utility.Vector3dVector(pcd)
+    o3d.io.write_point_cloud(save_path, pcd_o3d)

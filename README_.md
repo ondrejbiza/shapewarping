@@ -1,11 +1,6 @@
 # One-shot Imitation Learning via Interation Warping
 
 TODO:
-* Write tests for the remaining functions in utils.
-* Refactor show warp.
-* Add comments and types to demo.
-* Add comments and types to ndf_interface.
-* Add comments and types to object_warping.
 * Make sure I have the right dependencies.
 * Provide a docker image for R-NDF.
 
