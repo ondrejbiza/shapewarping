@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -89,6 +91,109 @@ class TestPickCanonicalWarp(unittest.TestCase):
         # Test with fewer than two point clouds
         with self.assertRaises(ValueError):
             learn_warp.pick_canonical_warp([self.points[0]])
+
+
+class TestLoadObjPaths(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.test_dir = Path(self.temp_dir)
+        
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.temp_dir)
+
+    def test_empty_directory(self):
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 0)
+
+    def test_single_obj_file(self):
+        subdir = self.test_dir / "obj1"
+        subdir.mkdir()
+        obj_file = subdir / "test.obj"
+        obj_file.write_text("# Test OBJ file")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], obj_file)
+
+    def test_multiple_obj_files_same_dir(self):
+        subdir = self.test_dir / "obj1"
+        subdir.mkdir()
+        obj1 = subdir / "test1.obj"
+        obj2 = subdir / "test2.obj"
+        obj1.write_text("# Test OBJ file 1")
+        obj2.write_text("# Test OBJ file 2")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertIn(result[0], [obj1, obj2])
+
+    def test_preferred_name_selection(self):
+        subdir = self.test_dir / "obj1"
+        subdir.mkdir()
+        obj1 = subdir / "test.obj"
+        obj2 = subdir / "model_normalized.obj"
+        obj1.write_text("# Test OBJ file 1")
+        obj2.write_text("# Model normalized file")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], obj2)
+
+    def test_multiple_subdirectories(self):
+        subdir1 = self.test_dir / "obj1"
+        subdir2 = self.test_dir / "obj2"
+        subdir1.mkdir()
+        subdir2.mkdir()
+        obj1 = subdir1 / "test1.obj"
+        obj2 = subdir2 / "test2.obj"
+        obj1.write_text("# Test OBJ file 1")
+        obj2.write_text("# Test OBJ file 2")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 2)
+        self.assertIn(obj1, result)
+        self.assertIn(obj2, result)
+
+    def test_nested_directories(self):
+        nested_dir = self.test_dir / "level1" / "level2"
+        nested_dir.mkdir(parents=True)
+        obj_file = nested_dir / "nested.obj"
+        obj_file.write_text("# Nested OBJ file")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], obj_file)
+
+    def test_ignores_non_obj_files(self):
+        subdir = self.test_dir / "obj1"
+        subdir.mkdir()
+        obj_file = subdir / "test.obj"
+        stl_file = subdir / "test.stl"
+        txt_file = subdir / "test.txt"
+        obj_file.write_text("# Test OBJ file")
+        stl_file.write_text("# Test STL file")
+        txt_file.write_text("# Test TXT file")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], obj_file)
+
+    def test_case_insensitive_extensions(self):
+        subdir = self.test_dir / "obj1"
+        subdir.mkdir()
+        obj_file = subdir / "test.OBJ"
+        obj_file.write_text("# Test OBJ file")
+        
+        result = learn_warp.load_obj_paths(self.test_dir)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], obj_file)
+
+    def test_nonexistent_directory_raises_error(self):
+        nonexistent_dir = Path("/nonexistent/path")
+        with self.assertRaises(AssertionError):
+            learn_warp.load_obj_paths(nonexistent_dir)
 
 
 # class TestPCAFitTransform(unittest.TestCase):
