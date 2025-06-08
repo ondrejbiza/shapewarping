@@ -233,14 +233,25 @@ def load_obj_paths(load_dir: Path) -> list[Path]:
     return files
 
 
+def get_rotation(
+    rot_z: float | None, rot_y: float | None, rot_x: float | None
+) -> Rotation:
+    """Get scipy rotation from Euler angles."""
+    if rot_z is None:
+        rot_z = 0.0
+    if rot_y is None:
+        rot_y = 0.0
+    if rot_x is None:
+        rot_x = 0.0
+    return Rotation.from_euler("zyx", [rot_z, rot_y, rot_x]).as_matrix()
+
+
 def main(args: argparse.Namespace):
     np.random.seed(2023)
     trimesh.util.attach_to_log()
 
     obj_paths = load_obj_paths(Path(args.load_dir))
-    rotation = Rotation.from_euler(
-        "zyx", [args.rot_z, args.rot_y, args.rot_x]
-    ).as_matrix()
+    rotation = get_rotation(args.rot_z, args.rot_y, args.rot_x)
     num_surface_samples = args.num_surface_samples
 
     meshes = []
