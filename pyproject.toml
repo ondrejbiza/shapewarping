@@ -18,15 +18,16 @@ classifiers = [
 ]
 requires-python = ">=3.7"
 dependencies = [
-  "scikit-learn",
-  "numpy",
   "cycpd",
-  "scipy",
-  "trimesh",
-  "pybullet",
+  "numpy",
   "open3d",
+  "pybullet",
+  "pyglet==1.5.31",
+  "scikit-learn",
+  "scipy",
   "torch",
   "torchvision",
+  "trimesh",
 ]
 
 [project.urls]
