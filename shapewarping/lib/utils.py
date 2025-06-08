@@ -9,6 +9,7 @@ import torch
 import trimesh
 from scipy.spatial.transform import Rotation
 from sklearn.decomposition import PCA
+from pathlib import Path
 
 NPF32 = npt.NDArray[np.float32]
 NPF64 = npt.NDArray[np.float64]
@@ -238,9 +239,9 @@ def best_fit_transform(A: NPF32, B: NPF32) -> Tuple[NPF64, NPF64, NPF64]:
     return T, R.astype(np.float64), t.astype(np.float64)
 
 
-def trimesh_load_object(obj_path: str) -> trimesh.Trimesh:
+def trimesh_load_object(obj_path: str | Path) -> trimesh.Trimesh:
     """Loads a mesh using trimesh."""
-    return trimesh.load(obj_path)
+    return trimesh.load(str(obj_path))
 
 
 def trimesh_transform(

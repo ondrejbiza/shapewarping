@@ -3,6 +3,7 @@ import copy as cp
 import logging
 import os
 import pickle
+from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -16,6 +17,11 @@ from sklearn.decomposition import PCA
 from shapewarping.lib import utils, viz_utils
 
 logger = logging.getLogger()
+
+SEARCH_EXTENSIONS = [".obj"]  # 3D file extensions to search for. Lowercase.
+SEARCH_NAMES = [
+    "model_normalized"
+]  # If we find multiple object files, pick this name if present.
 
 
 def cpd_transform(
@@ -186,11 +192,52 @@ def pca_fit_transform(
     return p_components, pca
 
 
+def load_obj_paths(load_dir: Path) -> list[Path]:
+    """Find object files."""
+    files = []
+
+    def rec_search(path: Path) -> Path | None:
+        if path.is_file():
+            if path.suffix.lower() in SEARCH_EXTENSIONS:
+                return path
+            else:
+                return None
+
+        found = []
+        for child in path.iterdir():
+            out = rec_search(child)
+            if out is not None:
+                found.append(out)
+
+        if len(found) == 0:
+            return None
+        elif len(found) == 1:
+            return found[0]
+        else:
+            logger.info(f"Found multiple obj files: {found}.")
+            for item in found:
+                if item.stem in SEARCH_NAMES:
+                    logger.info(f"Picking {item} by name.")
+                    return item
+            logger.info(f"Picking {found[0]} by order.")
+            return found[0]
+
+    assert load_dir.is_dir(), f"Expect {load_dir} to be a dir."
+    for file in load_dir.iterdir():
+        out = rec_search(file)
+        if out is None:
+            logger.warning(f"No obj file found in {file}")
+        else:
+            files.append(out)
+
+    return files
+
+
 def main(args: argparse.Namespace):
     np.random.seed(2023)
     trimesh.util.attach_to_log()
 
-    obj_paths = [os.path.join(args.load_dir, x) for x in os.listdir(args.load_dir)]
+    obj_paths = load_obj_paths(Path(args.load_dir))
     rotation = Rotation.from_euler(
         "zyx", [args.rot_z, args.rot_y, args.rot_x]
     ).as_matrix()
