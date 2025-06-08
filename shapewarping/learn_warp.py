@@ -18,7 +18,7 @@ from shapewarping.lib import utils, viz_utils
 
 logger = logging.getLogger()
 
-SEARCH_EXTENSIONS = [".obj"]  # 3D file extensions to search for. Lowercase.
+SEARCH_SUFFIXES = [".obj", ".stl"]  # 3D file suffixes to search for. Lowercase.
 SEARCH_NAMES = [
     "model_normalized"
 ]  # If we find multiple object files, pick this name if present.
@@ -129,7 +129,7 @@ def pick_canonical_simple(points: List[npt.NDArray]) -> int:
     if len(points) < 2:
         raise ValueError("We expect at least two point clouds.")
 
-    if torch.has_cuda:
+    if torch.backends.cuda.is_built():
         device = "cuda:0"
     else:
         device = "cpu"
@@ -198,13 +198,13 @@ def load_obj_paths(load_dir: Path) -> list[Path]:
 
     def rec_search(path: Path) -> Path | None:
         if path.is_file():
-            if path.suffix.lower() in SEARCH_EXTENSIONS:
+            if path.suffix.lower() in SEARCH_SUFFIXES:
                 return path
             else:
                 return None
 
         found = []
-        for child in path.iterdir():
+        for child in sorted(path.iterdir()):
             out = rec_search(child)
             if out is not None:
                 found.append(out)
@@ -223,7 +223,7 @@ def load_obj_paths(load_dir: Path) -> list[Path]:
             return found[0]
 
     assert load_dir.is_dir(), f"Expect {load_dir} to be a dir."
-    for file in load_dir.iterdir():
+    for file in sorted(load_dir.iterdir()):
         out = rec_search(file)
         if out is None:
             logger.warning(f"No obj file found in {file}")
@@ -288,11 +288,17 @@ def main(args: argparse.Namespace):
 
     print("####### Pick canonical shape")
     # TODO: Blacklist objects that have too many vertices.
-    if args.pick_canon_warp:
+    if args.set_canon_index is not None:
+        canonical_idx = args.set_canon_index
+        assert 0 <= canonical_idx < len(meshes), f"Canonical index {canonical_idx} out of range."
+    elif args.pick_canon_warp:
+        print("Picking canonical object using shape warping. This can take up to an hour.")
         canonical_idx = pick_canonical_warp(small_surface_points)
     else:
         # TODO: Should we be using hybrid points.
+        print("Picking canonical object.")
         canonical_idx = pick_canonical_simple(hybrid_points)
+    print(f"Canonical index: {canonical_idx}.")
 
     # We use small point clouds, except for the canonical object, to figure out the warps.
     tmp_obj_points = cp.copy(small_surface_points)
@@ -356,5 +362,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Perform object warping when we pick the canonical object.",
     )
+    parser.add_argument("--set-canon-index", default=None, type=int, help="Set index of canonical object.")
     parser.add_argument("--show", default=False, action="store_true")
     main(parser.parse_args())
