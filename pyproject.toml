@@ -22,6 +22,9 @@ dependencies = [
   "numpy",
   "cycpd",
   "scipy",
+  "trimesh",
+  "pybullet",
+  "open3d",
   "torch",
   "torchvision",
 ]
