@@ -34,8 +34,7 @@ from rndf_robot.utils.eval_gen_utils import constraint_obj_world, safeCollisionF
 
 from rndf_robot.eval.relation_tools.multi_ndf import infer_relation_intersection, create_target_descriptors
 
-from src.ndf_interface import NDFInterface
-from src.real_world import constants
+from shapewarping.lib.ndf_interface import NDFInterface
 
 NOISE_VALUE_LIST = [0.01, 0.02, 0.03, 0.04, 0.06, 0.08, 0.16, 0.24, 0.32, 0.4]
 
@@ -294,23 +293,10 @@ def main(args):
     #####################################################################################
     # prepare the target descriptors
 
-    if args.exp == "bowl_on_mug_upright_pose_new":
-        canon_source_path = constants.NDF_BOWLS_PCA_PATH
-        canon_target_path = constants.NDF_MUGS_PCA_PATH
-        canon_source_scale = constants.NDF_BOWLS_INIT_SCALE
-        canon_target_scale = constants.NDF_MUGS_INIT_SCALE
-    elif args.exp == "mug_on_rack_upright_pose_new":
-        canon_source_path = constants.NDF_MUGS_PCA_PATH
-        canon_target_path = constants.NDF_TREES_PCA_PATH
-        canon_source_scale = constants.NDF_MUGS_INIT_SCALE
-        canon_target_scale = constants.NDF_TREES_INIT_SCALE
-    elif args.exp == "bottle_in_container_upright_pose_new":
-        canon_source_path = constants.NDF_BOTTLES_PCA_PATH
-        canon_target_path = constants.BOXES_PCA_PATH
-        canon_source_scale = constants.NDF_BOTTLES_INIT_SCALE
-        canon_target_scale = constants.BOXES_INIT_SCALE
-    else:
-        raise ValueError("Unknown experiment.")
+    canon_source_path = args.source_pca_path
+    canon_target_path = args.target_pca_path
+    canon_source_scale = args.source_pca_scale
+    canon_target_scale = args.target_pca_scale
 
     interface = NDFInterface(
         canon_source_path=canon_source_path,
@@ -922,6 +908,11 @@ if __name__ == "__main__":
     parser.add_argument('--ablate-no-scale', default=False, action='store_true')
     parser.add_argument('--ablate-no-pose-training', default=False, action='store_true')
     parser.add_argument('--ablate-no-size-reg', default=False, action='store_true')
+
+    parser.add_argument('--source-pca-path', required=True)
+    parser.add_argument('--target-pca-path', required=True)
+    parser.add_argument('--source-pca-scale', type=float, default=1.0)
+    parser.add_argument('--target-pca-scale', type=float, default=1.0)
 
     args = parser.parse_args()
 

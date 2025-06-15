@@ -97,7 +97,7 @@ class ObjectWarping:
         indices = np.random.randint(0, self.components.shape[1] // 3, num_samples)
         means_ = self.means.view(-1, 3)[indices].view(-1)
         components_ = self.components.view(self.components.shape[0], -1, 3)[:, indices]
-        components_ = components_.view(self.components.shape[0], -1)
+        components_ = components_.reshape(self.components.shape[0], -1)
         canonical_obj_pt_ = self.canonical_pcd[indices]
 
         return means_, components_, canonical_obj_pt_

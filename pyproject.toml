@@ -19,15 +19,16 @@ classifiers = [
 requires-python = ">=3.7"
 dependencies = [
   "cycpd",
-  "numpy",
+  "meshcat",
+  "numpy==1.26.4",
   "open3d",
-  "pybullet",
+  "pybullet==3.1.3",
   "pyglet==1.5.31",
   "scikit-learn",
   "scipy",
-  "torch",
-  "torchvision",
-  "trimesh",
+  "torch==1.12.1",
+  "torchvision==0.13.1",
+  "trimesh==3.10.7",
 ]
 
 [project.urls]
