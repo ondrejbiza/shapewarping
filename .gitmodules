@@ -1,0 +1,3 @@
+[submodule "relational_ndf"]
+	path = relational_ndf
+	url = https://github.com/ondrejbiza/relational_ndf.git
